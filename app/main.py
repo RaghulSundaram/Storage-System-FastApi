@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
-from fastapi import Depends, FastAPI, HTTPException, status, Form
+from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile 
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from server import database as db
+from app.server import database as db
+import os
 
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
@@ -16,10 +18,12 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class TokenData(BaseModel):
+    id: str | None = None
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 app = FastAPI()
 
@@ -52,7 +56,27 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-@app.post("/token", response_model=Token)
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        id: str = payload.get("sub")
+        if id is None:
+            raise credentials_exception
+        token_data = TokenData(id=id)
+    except JWTError:
+        raise credentials_exception
+    user = await db.retrieve_user_by_id(id)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+@app.post("/login", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -69,14 +93,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @app.post("/register", status_code=200)
-async def register(username: str = Form(...), password: str = Form(...)):
+async def register(username: str = Form(...), password: str = Form(...), fullname: str = Form(...)):
     if await db.retrieve_user_by_username(username):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Username Already exists",
         )
     else:
-        user_entry = {"username": username, "password": get_password_hash(password)}
+        user_entry = {"username": username, "fullname": fullname, "password": get_password_hash(password)}
         inserted_user = await db.add_user(user_entry)
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
@@ -84,4 +108,18 @@ async def register(username: str = Form(...), password: str = Form(...)):
         )
         return {"access_token": access_token, "token_type": "bearer"}
 
+
+@app.get("/users/me/")
+async def read_users_me(current_user= Depends(get_current_user)):
+    return current_user
+
+
+@app.post("/upload")
+async def upload_file(file: UploadFile):
+    id = await db.upload_file(file)
+    return {"id": str(id)}
+
+@app.get("/download")
+async def download_file(id: str):
+    return StreamingResponse(await db.download_file(id))
 

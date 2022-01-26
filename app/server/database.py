@@ -1,4 +1,6 @@
+from fastapi import UploadFile
 import motor.motor_asyncio
+from bson.objectid import ObjectId
 
 MONGO_DETAILS = "mongodb://localhost:27017"
 
@@ -6,11 +8,14 @@ client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
 
 database = client.Hackathon
 
+gridfs_database = motor.motor_asyncio.AsyncIOMotorDatabase(client, "Hackathon")
+
 user_collection = database.get_collection("users")
 
 def user_helper(user) -> dict:
     return {
         "id": str(user["_id"]),
+        "fullname": user["fullname"],
         "username": user["username"],
         "password": user["password"],
     }
@@ -20,7 +25,7 @@ async def add_user(user_data: dict) -> dict:
     new_user = await user_collection.find_one({"_id": user.inserted_id})
     return user_helper(new_user)
 
-async def retrieve_user(id: str) -> dict:
+async def retrieve_user_by_id(id: str) -> dict:
     user = await user_collection.find_one({"_id": ObjectId(id)})
     if user:
         return user_helper(user)
@@ -28,5 +33,18 @@ async def retrieve_user(id: str) -> dict:
 async def retrieve_user_by_username(username: str) -> dict:
     user = await user_collection.find_one({"username": username})
     if user:
-        print(user)
         return user_helper(user)
+
+    
+async def upload_file(file: UploadFile):
+    fs = motor.motor_asyncio.AsyncIOMotorGridFSBucket(gridfs_database)
+    file_id = await fs.upload_from_stream(
+        file.filename,
+        file.file,
+        metadata={"contentType": file.content_type})
+    return file_id
+
+async def download_file(file_id):
+    fs = motor.motor_asyncio.AsyncIOMotorGridFSBucket(gridfs_database)
+    file = await fs.open_download_stream(ObjectId(file_id))
+    return file
