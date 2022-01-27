@@ -93,7 +93,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @app.post("/register", status_code=200)
-async def register(username: str = Form(...), password: str = Form(...), fullname: str = Form(...)):
+async def register(username: str, password: str , fullname: str):
     if await db.retrieve_user_by_username(username):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -110,16 +110,43 @@ async def register(username: str = Form(...), password: str = Form(...), fullnam
 
 
 @app.get("/users/me/")
-async def read_users_me(current_user= Depends(get_current_user)):
+async def read_users_me(current_user = Depends(get_current_user)):
     return current_user
 
 
 @app.post("/upload")
-async def upload_file(file: UploadFile):
-    id = await db.upload_file(file)
+async def upload_file(file: UploadFile, current_user = Depends(get_current_user)):
+    id = await db.upload_file(file, current_user)
     return {"id": str(id)}
 
 @app.get("/download")
-async def download_file(id: str):
-    return StreamingResponse(await db.download_file(id))
+async def download_file(id: str, current_user = Depends(get_current_user)):
+    file = await db.download_file(id, current_user)
+    if not file:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The requested resource is not owned by the user",
+        )
+    else:
+        return StreamingResponse(file, media_type=file.metadata["contentType"])
 
+@app.post("/share")
+async def share_file(file_id: str, to_id: str, current_user = Depends(get_current_user)):
+    if not await db.check_valid_user(to_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    elif not await db.check_file_owner(file_id, current_user["id"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The requested resource is not owned by the user",
+        )
+    elif await db.check_shared(file_id, to_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The requested resource is already shared with that account",
+        )
+    else:
+        id = await db.share_file(file_id, to_id)
+        return {"id": str(id)}
