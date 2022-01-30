@@ -13,10 +13,6 @@ class UserInDB(User):
 class UserInFrom(User):
     password: str
 
-
-class UserToReturn(User):
-    _id: str
-
     
 
 

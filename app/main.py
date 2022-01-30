@@ -6,11 +6,8 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from app.server import database as db
-from app.models.user import User, UserInDB, UserInFrom, UserToReturn
+from app.models.user import UserInDB, UserInFrom
 from fastapi.middleware.cors import CORSMiddleware
-
-
-
 
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
@@ -88,8 +85,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 @app.post("/login", status_code=200)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await authenticate_user(form_data.username, form_data.password)
+#async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(username: str, password: str):
+    user = await authenticate_user(username, password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

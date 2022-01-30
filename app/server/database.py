@@ -2,18 +2,15 @@ from fastapi import UploadFile
 import motor.motor_asyncio
 from bson.objectid import ObjectId
 import pymongo
-from app.models.user import UserInDB, User, UserInFrom, UserToReturn
+from app.models.user import UserInFrom
 
-MONGO_DETAILS = "mongodb://localhost:27017"
+#MONGO_DETAILS = "mongodb://localhost:27017"
 
 client = pymongo.MongoClient("mongodb+srv://raghulsundaram:Raghul9248$@hackathon-db.vlnns.mongodb.net/Hackathon?retryWrites=true&w=majority")
-# db = client.test
 
 gridfs_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb+srv://raghulsundaram:Raghul9248$@hackathon-db.vlnns.mongodb.net/Hackathon?retryWrites=true&w=majority")
 
 database = client.Hackathon
-
-#gridfs_database = motor.motor_asyncio.AsyncIOMotorDatabase(client, "Hackathon")
 
 user_collection = database.get_collection("users")
 
