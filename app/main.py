@@ -28,6 +28,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 app = FastAPI()
 
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,6 +37,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 def verify_password(plain_password, hashed_password):
@@ -130,7 +133,7 @@ async def upload_file(file: UploadFile, current_user = Depends(get_current_user)
 
 
 @app.get("/file/download", status_code=200)
-async def download_file(file_id: str = Form(...), current_user = Depends(get_current_user)):
+async def download_file(file_id: str, current_user = Depends(get_current_user)):
     if not await db.check_file_owner(file_id, current_user["_id"]) and not await db.check_shared(file_id, current_user["_id"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -142,7 +145,7 @@ async def download_file(file_id: str = Form(...), current_user = Depends(get_cur
 
 
 @app.post("/file/share", status_code=200)
-async def share_file(file_id: str = Form(...), to_id: str = Form(...), current_user = Depends(get_current_user)):
+async def share_file(file_id: str, to_id: str, current_user = Depends(get_current_user)):
     if to_id == current_user["_id"]:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -175,7 +178,7 @@ async def share_file(file_id: str = Form(...), to_id: str = Form(...), current_u
 
 
 @app.put("/file/revoke", status_code=200)
-async def revoke_file(file_id: str = Form(...), to_id: str = Form(...), current_user = Depends(get_current_user)):
+async def revoke_file(file_id: str, to_id: str, current_user = Depends(get_current_user)):
     if to_id == current_user["_id"]:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -224,7 +227,7 @@ async def get_shared_files(current_user = Depends(get_current_user)):
 
 
 @app.get("/file/shared-users", status_code=200)
-async def get_shared_users(file_id: str = Form(...), current_user = Depends(get_current_user)):
+async def get_shared_users(file_id: str, current_user = Depends(get_current_user)):
     if not await db.check_file_owner(file_id, current_user["_id"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -235,7 +238,7 @@ async def get_shared_users(file_id: str = Form(...), current_user = Depends(get_
 
 
 @app.put("/file/rename", status_code=200)
-async def rename_file(file_id: str = Form(...), filename: str = Form(...), current_user = Depends(get_current_user)):
+async def rename_file(file_id: str, filename: str, current_user = Depends(get_current_user)):
     if not await db.check_file_owner(file_id, current_user["_id"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -253,7 +256,7 @@ async def rename_file(file_id: str = Form(...), filename: str = Form(...), curre
 
 
 @app.delete("/file/delete", status_code=200)
-async def delete_file(file_id: str = Form(...), current_user = Depends(get_current_user)):
+async def delete_file(file_id: str, current_user = Depends(get_current_user)):
     if not await db.check_file_owner(file_id, current_user["_id"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -271,7 +274,7 @@ async def delete_file(file_id: str = Form(...), current_user = Depends(get_curre
 
 
 @app.get("/file/details", status_code=200)
-async def get_file_details(file_id: str = Form(...), current_user = Depends(get_current_user)):
+async def get_file_details(file_id: str, current_user = Depends(get_current_user)):
     if not await db.check_file_owner(file_id, current_user["_id"]) and not await db.check_shared(file_id, current_user["_id"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
