@@ -21,6 +21,12 @@ def stringify_id(obj: dict):
     obj["_id"] = str(obj["_id"])
     return obj
 
+def change_key_owner(obj: dict):
+    value = str(obj["metadata"]["owner"])
+    del obj["metadata"]
+    obj["owner"] = value
+    return obj
+
 async def add_user(user_data: UserInFrom):
     user = await user_collection.insert_one(user_data.dict())
     new_user = await user_collection.find_one({"_id": user.inserted_id})
@@ -87,13 +93,13 @@ async def revoke_share_file(file_id, to_id):
 
 async def get_all_users(user_id: str):
     result = user_collection.find({},{"password": 0})
-    result = [stringify_id({**item}) async for item in result if str(item["_id"]) != user_id]
+    result = [stringify_id({**item}) async for item in result]
     return result
 
 
 async def get_owned_files(user_id: str):
     result = file_collection.find({"metadata.owner": ObjectId(user_id)}, {"_id": 1, "filename": 1, "metadata.owner": 1})
-    result = [{"id": str(item["_id"]), "filename": item["filename"]} async for item in result]
+    result = [change_key_owner(stringify_id({**item})) async for item in result]
     return result
 
 
@@ -103,7 +109,7 @@ async def get_shared_files(user_id: str):
     async for file_id in file_ids:
         files.append(await file_collection.find_one({"_id": file_id["file_id"]}, {"_id": 1, "metadata.owner": 1, "filename": 1}))
     
-    files = [{"id": str(file["_id"]), "filename": file["filename"], "owner": str(file["metadata"]["owner"])} for file in files]
+    files = [change_key_owner(stringify_id({**file})) for file in files]
     return files
 
 
@@ -131,4 +137,4 @@ async def delete_file(file_id: str):
 
 async def get_file_details(file_id: str):
     result = await file_collection.find_one({"_id": ObjectId(file_id)}, {"_id": 1, "metadata.owner": 1, "filename": 1})
-    return {"id": str(result["_id"]), "filename": result["filename"], "owner": result["metadata"]["owner"]}
+    return change_key_owner(stringify_id({**result}))
