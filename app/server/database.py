@@ -3,12 +3,17 @@ import motor.motor_asyncio
 from bson.objectid import ObjectId
 import pymongo
 from app.models.user import UserInFrom
+import os
+from dotenv import load_dotenv
 
-#MONGO_DETAILS = "mongodb://localhost:27017"
+load_dotenv()
 
-client = pymongo.MongoClient("mongodb+srv://raghulsundaram:Raghul9248$@hackathon-db.vlnns.mongodb.net/Hackathon?retryWrites=true&w=majority")
 
-gridfs_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb+srv://raghulsundaram:Raghul9248$@hackathon-db.vlnns.mongodb.net/Hackathon?retryWrites=true&w=majority")
+DATABASE_URL = os.environ['DATABASE_URL']
+
+client = pymongo.MongoClient(DATABASE_URL)
+
+gridfs_client = motor.motor_asyncio.AsyncIOMotorClient(DATABASE_URL)
 
 database = client.Hackathon
 
