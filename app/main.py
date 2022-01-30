@@ -86,7 +86,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 @app.post("/login", status_code=200)
 #async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-async def login_for_access_token(username: str, password: str):
+async def login_for_access_token(username: str = Form(...), password: str = Form(...)):
     user = await authenticate_user(username, password)
     if not user:
         raise HTTPException(
