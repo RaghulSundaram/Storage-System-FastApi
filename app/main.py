@@ -6,7 +6,7 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from app.server import database as db
-from app.models.user import User, UserInDB, UserInFrom
+from app.models.user import User, UserInDB, UserInFrom, UserToReturn
 
 
 
@@ -73,9 +73,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 
-@app.post("/login", response_model=Token, status_code=200)
+@app.post("/login", status_code=200)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user: UserInDB = await authenticate_user(form_data.username, form_data.password)
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -86,7 +86,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": str(user["_id"])}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "username": user["username"], "fullname": user["fullname"]}
 
 
 @app.post("/register", status_code=200)
@@ -126,7 +126,7 @@ async def download_file(file_id: str, current_user = Depends(get_current_user)):
             detail="The requested resource cannot be accessed by the user",
         )    
     else:
-        file = await db.download_file(file_id, current_user)
+        file = await db.download_file(file_id)
         return StreamingResponse(file, media_type=file.metadata["contentType"])
 
 
