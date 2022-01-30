@@ -13,6 +13,10 @@ class UserInDB(User):
 class UserInFrom(User):
     password: str
 
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
     
 
 
