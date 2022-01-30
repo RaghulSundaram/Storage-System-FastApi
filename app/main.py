@@ -19,9 +19,6 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class TokenData(BaseModel):
-    id: str | None = None
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -68,7 +65,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         id: str = payload.get("sub")
         if id is None:
             raise credentials_exception
-        token_data = TokenData(id=id)
     except JWTError:
         raise credentials_exception
     user = await db.retrieve_user_by_id(id)
