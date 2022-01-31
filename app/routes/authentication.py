@@ -41,7 +41,12 @@ async def login_for_access_token(user: UserLogin):
 
 @router.post("/register", status_code=200)
 async def register(user: UserInFrom):
-    if await db.retrieve_user_by_username(user.username):
+    if user.username == "" or user.password == "" or user.fullname == "":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Please fill all the fields",
+        )
+    elif await db.retrieve_user_by_username(user.username):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Username Already exists",
