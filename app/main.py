@@ -5,7 +5,8 @@ from app.routes.api import router as api_router
 app = FastAPI()
 
 origins = [
-    "https://filexchange-ui.herokuapp.com",
+    # "https://filexchange-ui.herokuapp.com",
+    "*",
 ]
 
 app.add_middleware(
