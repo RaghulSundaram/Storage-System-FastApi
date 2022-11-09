@@ -14,7 +14,7 @@ client = pymongo.MongoClient(DATABASE_URL)
 
 gridfs_client = motor.motor_asyncio.AsyncIOMotorClient(DATABASE_URL)
 
-database = client.Hackathon
+database = client.filestorage
 
 user_collection = database.get_collection("users")
 
@@ -51,7 +51,7 @@ async def retrieve_user_by_username(username: str):
         return user
      
 async def upload_file(file: UploadFile, user_id: str):
-    fs = motor.motor_asyncio.AsyncIOMotorGridFSBucket(gridfs_client.Hackathon)
+    fs = motor.motor_asyncio.AsyncIOMotorGridFSBucket(gridfs_client.filestorage)
     file_id = await fs.upload_from_stream(
         file.filename,
         file.file,
@@ -60,7 +60,7 @@ async def upload_file(file: UploadFile, user_id: str):
 
 
 async def download_file(file_id):
-    fs = motor.motor_asyncio.AsyncIOMotorGridFSBucket(gridfs_client.Hackathon)
+    fs = motor.motor_asyncio.AsyncIOMotorGridFSBucket(gridfs_client.filestorage)
     file = await fs.open_download_stream(ObjectId(file_id))
     return file
 
